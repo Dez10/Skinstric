@@ -19,8 +19,12 @@ export const designTokens = {
   },
 
   // Typography (get these from Figma text styles)
-  typography: xfontFamily: {*{---------------------,$% Inter, sans-serif',
-      secondary: 'Arial, s5,8N 
+  typography: {
+    fontFamily: {
+      primary: 'Inter, sans-serif',
+      secondary: 'Arial, sans-serif'
+    },
+    fontSize: {
       base: '16px',
       lg: '18px',
       xl: '20px',
@@ -43,14 +47,14 @@ export const designTokens = {
 
   // Spacing (get these from Figma spacing tokens)
   spacing: {
-    xs: '4px',
-    sm: '8px',
-    md: '16px',
-    lg: '24px',
-    xl: '32px',
-    '2xl': '48px',
-    '3xl': '64px',
-    '4xl': '80px'
+  xs: '4px',
+  sm: '8px',
+  md: '16px',
+  lg: '24px',
+  xl: '32px',
+  '2xl': '48px',
+  '3xl': '64px',
+  '4xl': '80px'
   },
 
   // Border radius
