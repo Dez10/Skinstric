@@ -630,8 +630,10 @@ body {
     position: fixed; /* avoid layout shifts and allow viewport centering */
     left: 0; top: 0;
     transform: translate(var(--tx), var(--ty)) scale(var(--scale));
+    transform: translate3d(var(--tx), var(--ty), 0) scale(var(--scale));
     transform-origin: top left;
     z-index: 0;
+    will-change: transform;
   }
 }
 
@@ -644,6 +646,12 @@ body {
       --ty: calc((100svh - 960px * var(--scale)) / 2);
     }
   }
+}
+
+/* On extremely small/short screens, prefer the stacked mobile fallback for usability */
+@media (max-width: 480px), (max-height: 580px) {
+  .summary-absolute { display: none !important; }
+  .summary-content { display: block !important; padding: 0 16px; }
 }
 
 .main-content { 

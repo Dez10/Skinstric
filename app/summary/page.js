@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRequireDemographics } from '../components/guards';
 import { useJourney } from '../providers/JourneyProvider.jsx';
@@ -69,6 +69,52 @@ export default function SummaryPage() {
     }
   }, [currentPct]);
 
+  // Force the 1920x960 absolute board to scale-to-fit viewport reliably on all mobile browsers
+  const boardRef = useRef(null);
+  useEffect(() => {
+    if (!boardRef.current) return;
+
+    const DESIGN_W = 1920;
+    const DESIGN_H = 960;
+
+    const applyScale = () => {
+      let vw = window.innerWidth;
+      let vh = window.innerHeight;
+      if (window.visualViewport) {
+        vw = window.visualViewport.width;
+        vh = window.visualViewport.height;
+      }
+      const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
+      const tx = (vw - DESIGN_W * scale) / 2;
+      const ty = (vh - DESIGN_H * scale) / 2;
+      const el = boardRef.current;
+      if (!el) return;
+      el.style.position = 'fixed';
+      el.style.left = '0px';
+      el.style.top = '0px';
+      el.style.width = `${DESIGN_W}px`;
+      el.style.height = `${DESIGN_H}px`;
+      el.style.transformOrigin = 'top left';
+      el.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+      el.style.zIndex = '1';
+    };
+
+    applyScale();
+    const onResize = () => applyScale();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onResize);
+    }
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', onResize);
+      }
+    };
+  }, []);
+
   return (
     <div className="summary-canvas" aria-label="Summary layout">
       <div className="summary-subhead">A. I. Analysis</div>
@@ -82,7 +128,7 @@ export default function SummaryPage() {
 
       {/* Absolute layout for large screens (1920x960 spec) */}
       {hasAnalysisData && (
-        <div className="summary-absolute" aria-hidden={false}>
+  <div className="summary-absolute" aria-hidden={false} ref={boardRef}>
           {/* Main board */}
           <div className="summary-board" />
           <div className="summary-board-title">{(currentKey ?? '-').toString().replace(/_/g, ' ')}</div>
