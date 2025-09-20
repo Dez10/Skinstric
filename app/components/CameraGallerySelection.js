@@ -24,7 +24,7 @@ export default function CameraGallerySelection() {
   };
   return (
     <div className="camera-gallery-container" ref={rootRef}>
-      <div className="camera-gallery-content">
+      <div className="camera-gallery-content" role="group" aria-label="Choose image source">
         {showFloatInfo && typeof window !== 'undefined'
           ? createPortal(
             <div
@@ -96,7 +96,13 @@ export default function CameraGallerySelection() {
           ) : !showFloatInfo && (
             <div className="selection-options">
               {/* Camera Option */}
-              <div className="selection-option" onClick={() => setShowFloatInfo(true)}>
+              <button
+                type="button"
+                className="selection-option"
+                aria-label="Use camera"
+                onClick={() => setShowFloatInfo(true)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowFloatInfo(true); } }}
+              >
                 <div className="rotating-svg-container camera-rotate relative">
                   {/* Rotating dotted squares (overlay) */}
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -106,9 +112,15 @@ export default function CameraGallerySelection() {
                   </div>
                   <img src="/images/icons/camera (1).svg" alt="Camera" className="main-svg-icon relative z-10" />
                 </div>
-              </div>
+              </button>
               {/* Gallery Option */}
-              <div className="selection-option" onClick={proceedGallery}>
+              <button
+                type="button"
+                className="selection-option"
+                aria-label="Choose from gallery"
+                onClick={proceedGallery}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); proceedGallery(); } }}
+              >
                 <div className="rotating-svg-container gallery-rotate relative">
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                     <div className="absolute inset-0 border border-dotted border-gray-300 animate-spin-slow opacity-40" />
@@ -117,7 +129,7 @@ export default function CameraGallerySelection() {
                   </div>
                   <img src="/images/icons/gallery.svg" alt="Gallery" className="main-svg-icon relative z-10" />
                 </div>
-              </div>
+              </button>
             </div>
           )}
       </div>

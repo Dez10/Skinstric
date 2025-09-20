@@ -387,6 +387,68 @@ body {
   .analysis-diamond--group { left: 738.2px; top: 258px; }
 }
 
+/* Responsive layout for analysis cluster on viewports < 1440px */
+@media (max-width: 1439px) {
+  /* Center point and sizing variables */
+  .analysis-canvas {
+    --cluster-center-x: 50vw;
+    --cluster-center-y: clamp(46vh, 50vh, 54vh);
+    --tile-size: clamp(96px, 13vw, 140px);
+    --tile-gap: clamp(32px, 6.5vw, 120px);
+  }
+  .analysis-diamond { width: var(--tile-size); height: var(--tile-size); }
+  .analysis-diamond--top {
+    left: calc(var(--cluster-center-x) - var(--tile-size) / 2);
+    top: calc(var(--cluster-center-y) - var(--tile-gap) - var(--tile-size));
+  }
+  .analysis-diamond--left {
+    left: calc(var(--cluster-center-x) - var(--tile-gap) - var(--tile-size));
+    top: calc(var(--cluster-center-y) - var(--tile-size) / 2);
+  }
+  .analysis-diamond--right {
+    left: calc(var(--cluster-center-x) + var(--tile-gap));
+    top: calc(var(--cluster-center-y) - var(--tile-size) / 2);
+  }
+  .analysis-diamond--bottom {
+    left: calc(var(--cluster-center-x) - var(--tile-size) / 2);
+    top: calc(var(--cluster-center-y) + var(--tile-gap));
+  }
+  /* Dotted rings centered on the cluster */
+  .analysis-rombuses {
+    left: var(--cluster-center-x);
+    top: var(--cluster-center-y);
+    transform: translate(-50%, -50%);
+    width: calc(var(--tile-size) * 4.6);
+    height: calc(var(--tile-size) * 4.6);
+  }
+}
+
+/* Extra-tight layouts: very small phones and short/landscape viewports */
+@media (max-width: 400px) {
+  .analysis-canvas {
+    --tile-size: clamp(88px, 28vw, 120px);
+    --tile-gap: clamp(24px, 5.2vw, 80px);
+    --cluster-center-y: 56vh;
+  }
+  .analysis-rombuses { width: calc(var(--tile-size) * 4.2); height: calc(var(--tile-size) * 4.2); }
+}
+@media (max-height: 640px) {
+  .analysis-canvas {
+    --tile-size: clamp(84px, 12.5vw, 120px);
+    --tile-gap: clamp(22px, 4.8vw, 80px);
+    --cluster-center-y: 58vh; /* avoid subhead overlap on short screens */
+  }
+  .analysis-rombuses { width: calc(var(--tile-size) * 4.1); height: calc(var(--tile-size) * 4.1); }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .analysis-canvas {
+    --tile-size: clamp(72px, 10.5vw, 110px);
+    --tile-gap: clamp(18px, 4vw, 64px);
+    --cluster-center-y: 60vh;
+  }
+  .analysis-rombuses { width: calc(var(--tile-size) * 3.9); height: calc(var(--tile-size) * 3.9); }
+}
+
 /* Dotted diamond rings (rombuses) background */
 .analysis-rombuses { position: absolute; pointer-events: none; z-index: 0; opacity: 0; transition: opacity .2s ease; }
 @media (min-width: 1440px) {
@@ -434,6 +496,32 @@ body {
   letter-spacing: -0.02em;
   text-transform: uppercase;
   color: #1A1B1C;
+}
+
+/* Headings/subheads responsive overrides (prevent overlap on small screens) */
+@media (max-width: 1023px) {
+  .analysis-subhead, .analysis-caption {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 88px 16px 8px 16px;
+  }
+  .analysis-caption { margin-top: 6px; max-width: 92vw; opacity: 0.9; }
+  .analysis-subhead { font-size: 14px; line-height: 20px; }
+}
+
+@media (max-width: 767px) {
+  .analysis-subhead { margin-top: 72px; font-size: 13px; }
+  .analysis-caption { font-size: 12px; line-height: 18px; }
+}
+
+@media (max-width: 1023px) {
+  .summary-subhead {
+    position: static;
+    width: auto; height: auto;
+    margin: 88px 16px 8px 16px;
+    font-size: 14px; line-height: 20px;
+  }
 }
 
 /* Summary page heading block */
@@ -524,6 +612,38 @@ body {
   .btn-simple { display: inline-flex; align-items: center; height: 35px; padding: 9px 16px 10px; gap: 8px; font-weight: 600; font-size: 14px; line-height: 16px; letter-spacing: -0.02em; text-transform: uppercase; }
   .btn-simple--outline { border: 1px solid #1A1B1C; color: #1A1B1C; background: transparent; }
   .btn-simple--primary { background: #1A1B1C; color: #FCFCFC; }
+}
+
+/* Scale-to-fit Summary board for smaller viewports (show the styled board everywhere) */
+@media (max-width: 1439px) {
+  /* Show board and hide the stacked list fallback */
+  .summary-absolute { display: block; position: relative; width: 1920px; height: 960px; }
+  .summary-content { display: none; }
+  /* Scale proportionally to fit screen (maintain aspect) */
+  .summary-absolute {
+    --scale-x: calc(100vw / 1920);
+    --scale-y: calc(100vh / 960);
+    --scale: min(var(--scale-x), var(--scale-y));
+    /* Center the board after scaling */
+    --tx: calc((100vw - 1920px * var(--scale)) / 2);
+    --ty: calc((100vh - 960px * var(--scale)) / 2);
+    position: fixed; /* avoid layout shifts and allow viewport centering */
+    left: 0; top: 0;
+    transform: translate(var(--tx), var(--ty)) scale(var(--scale));
+    transform-origin: top left;
+    z-index: 0;
+  }
+}
+
+/* Use small viewport units on mobile browsers when available to avoid address bar jump */
+@media (max-width: 1439px) {
+  @supports (height: 100svh) {
+    .summary-absolute {
+      --scale-y: calc(100svh / 960);
+      --scale: min(var(--scale-x), var(--scale-y));
+      --ty: calc((100svh - 960px * var(--scale)) / 2);
+    }
+  }
 }
 
 .main-content { 
