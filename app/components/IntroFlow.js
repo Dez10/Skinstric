@@ -1,14 +1,16 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
+import { useRouter } from 'next/navigation';
+import { useJourney } from '../providers/JourneyProvider.jsx';
 
 const IntroFlow = ({ onComplete }) => {
   const [showFloatInfo, setShowFloatInfo] = useState(false);
-  // Dummy camera start function for modal gating
-  const { push } = require('next/navigation');
+  const router = useRouter();
+  const { setIdentity } = useJourney();
   const handleAllowCamera = () => {
     setShowFloatInfo(false);
-    push('/camera');
+    router.push('/camera');
   };
   const [step, setStep] = useState(1); // 1: name, 2: location, 3: processing, 4: thank you
   const [name, setName] = useState('');
@@ -126,13 +128,13 @@ const IntroFlow = ({ onComplete }) => {
     };
     
     try {
-      await fetch('https://us-central1-frontend-simplified.cloudfunctions.net/skinstricPhaseOne', {
+      await fetch('https://us-central1-api-skinstric-ai.cloudfunctions.net/skinstricPhaseOne', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       });
     } catch (err) {
-      console.log('API call failed:', err);
+      console.log('Phase One API call failed:', err);
     }
     
     // After 2 seconds, show thank you step
@@ -143,19 +145,21 @@ const IntroFlow = ({ onComplete }) => {
   };
 
   const handleProceed = () => {
-    const userData = {
-      name: name.trim(),
-      location: location.trim()
-    };
-    
-    // Animate out before completing
+    const userData = { name: name.trim(), location: location.trim() };
+    setIdentity(userData);
     const ctx = gsap.context(() => {
       gsap.to('.intro-flow', {
         opacity: 0,
         scale: 0.95,
         duration: 0.6,
         ease: 'power2.in',
-        onComplete: () => onComplete(userData)
+        onComplete: () => {
+          if (onComplete) {
+            onComplete(userData); // backward compatibility with old orchestrator
+          } else {
+            router.push('/select');
+          }
+        }
       });
     }, stepRef);
   };

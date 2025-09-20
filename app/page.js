@@ -1,31 +1,16 @@
 
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { gsap } from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import { TextPlugin } from 'gsap/TextPlugin';
 gsap.registerPlugin(MotionPathPlugin, ScrollToPlugin, TextPlugin);
-import CustomerForm from './components/CustomerForm';
-import IntroFlow from './components/IntroFlow';
-import CameraGallerySelection from './components/CameraGallerySelection';
-import ImageUpload from './components/ImageUpload';
-import SelfieCapture from './components/SelfieCapture';
-import FinalResults from './components/FinalResults';
-
-const STAGES = { 
-  LANDING: 'landing', 
-  INTRO: 'intro', 
-  SELECTION: 'selection',
-  UPLOAD: 'upload', 
-  SELFIE: 'selfie',
-  RESULTS: 'results', 
-  FORM: 'form' 
-};
 
 export default function Home() {
-  const [stage, setStage] = useState(STAGES.LANDING);
-  const [userData, setUserData] = useState(null);
+  const router = useRouter();
   const landingRef = useRef(null);
   const headingRef = useRef(null);
   const leftChevronRef = useRef(null);
@@ -47,61 +32,6 @@ export default function Home() {
     localStorage.removeItem('skinstric_user_location');
     localStorage.removeItem('customerData');
   }, []);
-
-  const handleBack = () => {
-    if (stage === STAGES.FORM) setStage(STAGES.RESULTS);
-    else if (stage === STAGES.RESULTS) setStage(STAGES.SELFIE);
-    else if (stage === STAGES.SELFIE) setStage(STAGES.SELECTION);
-    else if (stage === STAGES.UPLOAD) setStage(STAGES.SELECTION);
-    else if (stage === STAGES.SELECTION) setStage(STAGES.INTRO);
-    else if (stage === STAGES.INTRO) setStage(STAGES.LANDING);
-  };
-
-  const handleIntroComplete = (data) => {
-    setUserData(data);
-    setStage(STAGES.SELECTION);
-  };
-
-  const handleCameraSelect = () => {
-    setStage(STAGES.SELFIE);
-  };
-
-  const handleGallerySelect = () => {
-    setStage(STAGES.UPLOAD);
-  };
-
-  const handleUploadComplete = (data) => {
-    setUserData(data);
-    setStage(STAGES.RESULTS);
-  };
-
-  const handleSelfieComplete = (data) => {
-    setUserData(data);
-    setStage(STAGES.RESULTS);
-  };
-
-  const handleResultsComplete = (data) => {
-    setUserData(data);
-    setStage(STAGES.FORM);
-  };
-
-  const handleFormComplete = () => {
-    // Reset to landing or show success
-    setStage(STAGES.LANDING);
-  };
-
-  const goIntro = () => setStage(STAGES.INTRO);
-  
-  const goHome = () => setStage(STAGES.LANDING);
-  
-  const handleGoHome = () => {
-    // Clear all user data and localStorage
-    setUserData(null);
-    localStorage.removeItem('skinstric_user_name');
-    localStorage.removeItem('skinstric_user_location');
-    localStorage.removeItem('customerData');
-    setStage(STAGES.LANDING);
-  };
   
   // Hover handlers for landing page animations
   const handleLeftHover = (isHovering) => {
@@ -333,7 +263,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (stage === STAGES.LANDING && landingRef.current) {
+    if (landingRef.current) {
       console.log('DEBUG: line1Ref', line1Ref.current);
       console.log('DEBUG: line2Ref', line2Ref.current);
       const ctx = gsap.context(() => {
@@ -390,7 +320,7 @@ export default function Home() {
       }, landingRef);
       return () => ctx.revert();
     }
-  }, [stage]);
+  }, []);
 
   return (
     <div className="app">
@@ -409,28 +339,8 @@ export default function Home() {
         </svg>
       </div>
 
-      <header className="header">
-        <div className="header-left">
-          <h1 className="logo" onClick={goHome} role="button" tabIndex={0} onKeyDown={(e)=>{if(e.key==='Enter'){goHome();}}}>SKINSTRIC</h1>
-          <div className="intro-bracket-container">
-            <span className="bracket-left" style={{fontFamily: 'Roobert TRIAL, Inter, sans-serif'}}>[</span>
-            <span className="intro-text" style={{fontFamily: 'Roobert TRIAL, Inter, sans-serif'}}>INTRO</span>
-            <span className="bracket-right" style={{fontFamily: 'Roobert TRIAL, Inter, sans-serif'}}>] </span>
-          </div>
-        </div>
-        <button className="enter-code-btn">ENTER CODE</button>
-      </header>
-
-      {stage === STAGES.INTRO && (
-        <div className="analysis-text">TO START ANALYSIS</div>
-      )}
-
-      {(stage === STAGES.UPLOAD || stage === STAGES.SELFIE || stage === STAGES.RESULTS || stage === STAGES.SELECTION) && (
-        <div className="analysis-text">ANALYSIS IN PROGRESS</div>
-      )}
-
-      {stage === STAGES.LANDING && (
-        <>
+      {/* Header now provided globally by GlobalHeader to keep consistent across pages */}
+      <>
           {/* Hidden SVG paths for motion */}
           <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
             <path id="slidePathRight" d="M0 0 C 60 -10, 135 -10, 195 0" fill="none" />
@@ -467,10 +377,10 @@ export default function Home() {
             <div 
               className="sidebar sidebar-right" 
               ref={rightChevronRef} 
-              onClick={goIntro} 
+              onClick={() => router.push('/intro')} 
               role="button" 
               tabIndex={0} 
-              onKeyDown={(e)=>{if(e.key==='Enter'){goIntro();}}}
+              onKeyDown={(e)=>{if(e.key==='Enter'){router.push('/intro');}}}
               onMouseEnter={() => handleRightHover(true)}
               onMouseLeave={() => handleRightHover(false)}
             >
@@ -478,87 +388,7 @@ export default function Home() {
               <div className="diamond-button"><div className="diamond"><span className="diamond-arrow right" /></div></div>
             </div>
           </div>
-        </>
-      )}
-
-      {stage === STAGES.LANDING && (
-        <div className="bottom-description">
-          <p className="description-text">SKINSTRIC DEVELOPED AN A.I. THAT CREATES A<br />HIGHLY-PERSONALIZED ROUTINE TAILORED TO<br />WHAT YOUR SKIN NEEDS.</p>
-        </div>
-      )}
-
-      {stage === STAGES.INTRO && (
-        <IntroFlow 
-          onComplete={handleIntroComplete}
-        />
-      )}
-
-      {stage === STAGES.SELECTION && (
-        <CameraGallerySelection 
-          onBack={handleBack}
-          onCameraSelect={handleCameraSelect}
-          onGallerySelect={handleGallerySelect}
-          userData={userData}
-        />
-      )}
-
-      {stage === STAGES.UPLOAD && (
-        <ImageUpload 
-          onComplete={handleUploadComplete}
-          onBack={handleBack}
-          userData={userData}
-        />
-      )}
-
-      {stage === STAGES.SELFIE && (
-        <SelfieCapture 
-          onComplete={handleSelfieComplete}
-          onBack={handleBack}
-          userData={userData}
-        />
-      )}
-
-      {stage === STAGES.RESULTS && (
-        <FinalResults 
-          onComplete={handleResultsComplete}
-          onBack={handleBack}
-          onGoHome={handleGoHome}
-          userData={userData}
-        />
-      )}
-
-      {stage === STAGES.FORM && (
-        <div className="form-overlay" role="dialog" aria-modal="true">
-          <CustomerForm 
-            onBack={handleBack} 
-            onProceed={handleFormComplete} 
-          />
-        </div>
-      )}
-
-      {/* Floating Back Button for Intro Stage */}
-      {stage === STAGES.INTRO && (
-        <div className="back-floating">
-          <div className="diamond-button" onClick={handleBack}>
-            <div className="diamond">
-              <span className="diamond-arrow left"></span>
-            </div>
-          </div>
-          <span>BACK</span>
-        </div>
-      )}
-
-      {/* Floating Back Button for Selection Stage */}
-      {stage === STAGES.SELECTION && (
-        <div className="back-floating">
-          <div className="diamond-button" onClick={handleBack}>
-            <div className="diamond">
-              <span className="diamond-arrow left"></span>
-            </div>
-          </div>
-          <span>BACK</span>
-        </div>
-      )}
+      </>
     </div>
   );
 }

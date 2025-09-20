@@ -1,3 +1,12 @@
 {
-  "/page": "app/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/camera/capture/page": "app/camera/capture/page.js",
+  "/camera/page": "app/camera/page.js",
+  "/page": "app/page.js",
+  "/intro/page": "app/intro/page.js",
+  "/form/page": "app/form/page.js",
+  "/select/page": "app/select/page.js",
+  "/result/page": "app/result/page.js",
+  "/summary/page": "app/summary/page.js",
+  "/upload/page": "app/upload/page.js"
 }

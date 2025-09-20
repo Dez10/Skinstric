@@ -1,0 +1,21 @@
+# Ignore legacy and reference code
+next-migration/
+src/
+_reference/
+
+# Generated / build artifacts
+.next/
+out/
+coverage/
+# Ignore heavy reference and legacy folders
+_reference/
+next-migration/
+src/
+app/page_old.js
+
+# Generated build output
+.next/
+
+# Misc
+node_modules/
+coverage/

@@ -1,3 +1,18 @@
+/* Force float-info-overlay to always cover and block everything underneath */
+.float-info-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  background: rgba(255,255,255,0.96) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
 /* Global + migrated styles */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @tailwind base;
@@ -9,6 +24,174 @@ body {
   font-family: 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; 
   background: #fff; 
   -webkit-font-smoothing: antialiased;
+}
+
+/* --- Capture Preview Overlay --- */
+.preview-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; }
+.preview-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.preview-toast {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  color: #FCFCFC; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; font-size: 22px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+.preview-panel { position: absolute; left: 50%; bottom: 48px; transform: translateX(-50%); width: 520px; max-width: calc(100vw - 48px); color: #FCFCFC; text-align: center; }
+.preview-heading { font-weight: 700; font-size: 18px; margin-bottom: 14px; text-transform: capitalize; }
+.preview-actions { display: inline-flex; gap: 12px; align-items: center; }
+.btn-retake { 
+  background: rgba(255,255,255,0.85); color: #111; border: none; padding: 10px 16px; font-weight: 700; letter-spacing: 0.05em; cursor: pointer; 
+}
+.btn-use { 
+  background: #111; color: #fff; border: 1px solid #111; padding: 10px 16px; font-weight: 700; letter-spacing: 0.05em; cursor: pointer; 
+}
+.btn-use:disabled { opacity: .7; cursor: default; }
+
+/* Capture CTA exact styling */
+.capture-cta__label {
+  color: #FCFCFC;
+  opacity: 0.7; /* Figma */
+  font-family: 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 600; /* Figma */
+  font-size: 14px; /* Figma */
+  line-height: 16px; /* Figma */
+  letter-spacing: -0.02em; /* Figma */
+  text-transform: uppercase;
+  z-index: 1;
+  white-space: nowrap; /* keep on one line */
+}
+.capture-cta__button {
+  width: 62px;
+  height: 62px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 2px solid #FCFCFC; /* Figma outer ring */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color .15s ease, transform .05s ease;
+  position: relative;
+}
+.capture-cta__button:hover { background: rgba(255,255,255,0.06); }
+.capture-cta__button:active { transform: scale(0.98); }
+/* Inner disk */
+.capture-cta__button::before {
+  content: "";
+  position: absolute;
+  width: 55.11px; /* Figma */
+  height: 55.11px; /* Figma */
+  border-radius: 9999px;
+  background: #FCFCFC; /* Figma inner fill */
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Viewport positioning for capture CTA */
+.capture-cta-pos {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: block;
+  height: 62px; /* match button height so children can be absolutely placed */
+  width: 169px; /* label area + 16px gap + 62px button */
+}
+/* Ensure label is always on the LEFT of the circle by default */
+.capture-cta-pos > .capture-cta__button { position: absolute !important; right: 0 !important; left: auto !important; top: 0 !important; }
+.capture-cta-pos > .capture-cta__label { position: absolute !important; left: 0 !important; right: 78px !important; top: 50% !important; transform: translateY(-50%) !important; text-align: left !important; }
+@media (min-width: 768px) { /* md */
+  .capture-cta-pos { right: 40px; }
+}
+@media (min-width: 1024px) { /* lg */
+  .capture-cta-pos { right: 64px; }
+}
+/* Proportional placement for laptop widths to mirror Figma layout */
+@media (min-width: 768px) and (max-width: 1439px) {
+  .capture-cta-pos {
+    left: calc(1719 / 1920 * 100vw);
+    top: calc(449 / 960 * 100vh);
+    right: auto;
+    transform: none;
+    height: 62px;
+    display: block;
+  }
+  .capture-cta-pos .capture-cta__button { position: absolute; right: 0; top: 0; }
+  .capture-cta-pos .capture-cta__label { position: absolute; left: 0; right: 78px; top: 50%; transform: translateY(-50%); text-align: left; }
+}
+/* Exact Figma coordinates on desktop scale (assumes 1920x960 frame) */
+@media (min-width: 1440px) {
+  /* Figma: top: 449px, left: 1719px, width: 169px x 62px including label+button */
+  .capture-cta-pos {
+    top: 449px; 
+    left: 1719px; 
+    right: auto; 
+    transform: none;
+    height: 62px;
+    display: block;
+  }
+  .capture-cta-pos .capture-cta__button { position: absolute; right: 0; top: 0; }
+  .capture-cta-pos .capture-cta__label { position: absolute; left: 0; right: 78px; top: 50%; transform: translateY(-50%); text-align: left; }
+}
+
+/* Footer guidelines line and bullets */
+.guidelines-wrap { text-align: center; }
+.guidelines-leadin {
+  display: block;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  font-size: 10px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+.guidelines-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  font-size: 10px;
+}
+.guidelines-item { display: inline-flex; align-items: center; gap: 8px; }
+.diamond-bullet {
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
+  border: 1.5px solid currentColor;
+  display: inline-block;
+}
+.diamond-bullet--light { color: rgba(255,255,255,0.92); }
+.diamond-bullet--dark { color: rgba(26,27,28,0.85); }
+
+/* Fixed bottom-center guidelines, with desktop exact coordinates override */
+.guidelines-fixed-pos {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 40;
+}
+/* Force white text for bottom guidelines on capture */
+.guidelines-fixed-pos .guidelines-wrap { color: rgba(252,252,252,0.8) !important; }
+@media (min-width: 1440px) {
+  /* Figma: top: 854px, left: 688px, width: ~492px, height: 64px (centered block) */
+  .guidelines-fixed-pos {
+    top: 854px;
+    left: 688px;
+    bottom: auto;
+    transform: none;
+    width: 492px;
+  }
+}
+@media (min-width: 768px) and (max-width: 1439px) {
+  .guidelines-fixed-pos {
+    left: calc(688 / 1920 * 100vw);
+    top: calc(854 / 960 * 100vh);
+    bottom: auto;
+    transform: none;
+    width: 492px;
+  }
 }
 :where(.use-roobert) {
   font-family: roobert, 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
@@ -38,6 +221,11 @@ body {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
 }
+.header--analysis { padding-left: 32px; padding-right: 60px; }
+.header--transparent { background: transparent; backdrop-filter: none; }
+.header--light .logo { color:#FCFCFC; }
+.header--light .intro-text { color:#FCFCFC; opacity:0.9; }
+.header--light .bracket-left, .header--light .bracket-right { color:#FCFCFC; opacity:0.7; }
 .header-left { 
   display: flex; 
   align-items: center; 
@@ -52,6 +240,7 @@ body {
   color: #000; 
   cursor: pointer;
   margin: 0; 
+  text-decoration: none; /* ensure no underline even when rendered as a link */
 }
 .intro-bracket-container {
   display: flex;
@@ -98,6 +287,243 @@ body {
   letter-spacing: -0.02em;
   text-transform: uppercase;
   color: #000;
+}
+
+/* Analysis/Summary stage canvas + subheads (exact Figma coords) */
+.analysis-canvas, .summary-canvas {
+  position: relative; /* anchor for absolutely positioned analysis elements */
+  width: 100%;
+  min-height: 100vh;
+}
+.analysis-subhead {
+  position: absolute;
+  width: 227px;
+  height: 24px;
+  left: 32px;
+  top: 86px;
+
+  /* subhead/1920 */
+  font-family: 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.02em; /* -2% */
+  text-transform: uppercase;
+  color: #1A1B1C; /* #1A1B1C */
+}
+.analysis-caption {
+  position: absolute;
+  width: 336px;
+  height: 48px;
+  left: 32px;
+  top: 118px;
+  font-family: 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 24px; /* 171% */
+  text-transform: uppercase;
+  color: #1A1B1C;
+}
+
+/* --- Analysis diamond cluster (exact 1920x960 positioning) --- */
+.analysis-diamond {
+  position: absolute;
+  width: 153.88px;
+  height: 153.88px;
+  transform: rotate(45deg);
+  box-sizing: border-box;
+  z-index: 1; /* above background rings */
+}
+.analysis-diamond--primary { background: #E1E1E2; }
+.analysis-diamond--secondary { background: #F3F3F4; }
+.analysis-diamond--clickable { cursor: pointer; }
+.analysis-diamond--clickable:focus-visible { outline: none; box-shadow: 0 0 0 2px #1A1B1C; }
+.analysis-diamond--group {
+  position: absolute;
+  width: 313.67px;
+  height: 313.67px;
+  transform: rotate(45deg);
+  border: 0.1px solid #FCFCFC;
+  background: transparent;
+  pointer-events: none; /* purely decorative */
+}
+
+/* Inner content for labels placed inside a rotated diamond */
+.analysis-diamond__inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-45deg); /* counter-rotate so text is upright */
+}
+.analysis-diamond__label {
+  font-family: 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-style: normal;
+  font-weight: 600; /* SemiBold */
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.02em; /* -2% */
+  text-transform: uppercase;
+  color: #1A1B1C;
+  text-align: center;
+  vertical-align: middle;
+  white-space: normal;
+  padding: 0 8px; /* breathing room from diamond corners */
+}
+@media (min-width: 1440px) {
+  /* Demographics exact label box per Figma */
+  .analysis-diamond--top .analysis-diamond__label { width: 142.04px; height: 23.67px; }
+}
+
+/* Tile positions */
+@media (min-width: 1440px) {
+  .analysis-diamond--top { left: 851.2px; top: 258px; }
+  .analysis-diamond--left { left: 738.2px; top: 370.99px; }
+  .analysis-diamond--right { left: 962.99px; top: 370.99px; }
+  .analysis-diamond--bottom { left: 851.19px; top: 483.98px; }
+  .analysis-diamond--group { left: 738.2px; top: 258px; }
+}
+
+/* Dotted diamond rings (rombuses) background */
+.analysis-rombuses { position: absolute; pointer-events: none; z-index: 0; opacity: 0; transition: opacity .2s ease; }
+@media (min-width: 1440px) {
+  /* Center rings on current tile cluster center (~928.135, 447.93) */
+  .analysis-rombuses { left: 547.135px; top: 66.93px; width: 762px; height: 762px; }
+}
+
+/* Reveal logic: default hidden, show on hover, with per-ring selection */
+.analysis-rombuses.is-active { opacity: 1; }
+.analysis-rombuses .ring-small,
+.analysis-rombuses .ring-medium,
+.analysis-rombuses .ring-large { opacity: 0; transition: opacity .2s ease; }
+.analysis-rombuses.is-active[data-ring="0"] .ring-small { opacity: 1; }
+.analysis-rombuses.is-active[data-ring="1"] .ring-medium { opacity: 0.6; }
+.analysis-rombuses.is-active[data-ring="2"] .ring-large { opacity: 0.3; }
+
+/* Labels under tiles */
+.analysis-label {
+  position: absolute;
+  font-family: 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-style: normal; font-weight: 600;
+  font-size: 16px; line-height: 24px;
+  letter-spacing: -0.02em; text-transform: uppercase;
+  color: #1A1B1C; text-align: center;
+  white-space: nowrap; /* keep each label on one line */
+}
+@media (min-width: 1440px) {
+  /* Demographics label now lives inside the top diamond */
+  .analysis-label--demographics { display: none; }
+  /* Other labels moved inside their diamonds as well */
+  .analysis-label--skin, .analysis-label--cosmetic, .analysis-label--weather { display: none; }
+}
+.summary-subhead {
+  position: absolute;
+  width: 227px;
+  height: 24px;
+  left: 32px;
+  top: 86px;
+
+  font-family: 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: #1A1B1C;
+}
+
+/* Summary page heading block */
+.summary-header { text-align: left; margin-left: 32px; margin-top: 118px; }
+.summary-kicker {
+  font-family: 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px; line-height: 24px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 6px 0; color: #1A1B1C;
+}
+.summary-heading {
+  font-family: 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 72px; line-height: 64px; font-weight: 400; letter-spacing: -0.06em; margin: 0 0 4px 0; color: #1A1B1C;
+}
+.summary-section-subtitle {
+  font-family: 'Roobert TRIAL', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px; line-height: 24px; font-weight: 600; text-transform: uppercase; margin: 0; color: #1A1B1C;
+}
+.summary-content { max-width: 1000px; margin: 32px auto 0; padding: 0 20px; }
+
+@media (max-width: 768px) {
+  .summary-header { margin-left: 20px; margin-top: 96px; }
+  .summary-heading { font-size: 42px; line-height: 40px; }
+}
+
+/* Summary absolute layout (1920x960 spec) */
+.summary-absolute { display: none; }
+@media (min-width: 1440px) {
+  /* Show absolute layout and hide stacked fallback */
+  .summary-absolute { display: block; }
+  .summary-content { display: none; }
+
+  .summary-board {
+    position: absolute; left: 256px; top: 304px; width: 1168px; height: 544px;
+    background: #F3F3F4;
+  }
+  .summary-board::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 1px; background: #1A1B1C; border-radius: 2px; }
+  .summary-board-title {
+    position: absolute; left: 271px; top: 324px;
+    font-family: 'Roobert TRIAL', 'Inter', sans-serif;
+    font-weight: 400; font-size: 40px; line-height: 40px; letter-spacing: -0.05em; color: #1A1B1C;
+    text-transform: capitalize;
+  }
+  .summary-board-circle { position: absolute; left: 1024px; top: 440px; width: 384px; height: 384px; }
+  .summary-circle-outer, .summary-circle-inner { position: absolute; inset: 0; border-radius: 50%; border: 3px solid; }
+  .summary-circle-outer { border-color: #C1C2C3; }
+  .summary-circle-inner { border-color: #1A1B1C; }
+  /* SVG animated arc ring */
+  .summary-arc { position: absolute; inset: 12px; transform: rotate(-90deg); }
+  .summary-arc .track { fill: none; stroke: #D8D9DA; stroke-width: 6; opacity: 0.7; }
+  .summary-arc .progress { fill: none; stroke: #1A1B1C; stroke-width: 6; transition: stroke-dashoffset .6s ease; }
+  .summary-percent-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .summary-percent { font-family: 'Roobert TRIAL', 'Inter', sans-serif; color: #1A1B1C; display: flex; align-items: flex-end; gap: 6px; }
+  .summary-percent .num { font-weight: 400; font-size: 40px; line-height: 40px; letter-spacing: -0.05em; }
+  .summary-percent .pct { font-weight: 400; font-size: 24px; line-height: 40px; letter-spacing: -0.05em; }
+
+  /* Left mini cards */
+  .summary-cards .card { position: absolute; left: 32px; width: 208px; height: 104px; }
+  .summary-cards .card::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 1px; background: #1A1B1C; }
+  .summary-cards .card--race { top: 304px; background: #1A1B1C; color: #FCFCFC; }
+  .summary-cards .card--race::before { opacity: 0.3; }
+  .summary-cards .card--age { top: 416px; background: #E1E1E2; color: #1A1B1C; }
+  .summary-cards .card--sex { top: 528px; background: #F3F3F4; color: #1A1B1C; }
+  .summary-cards .card.is-active { outline: 2px solid #1A1B1C; outline-offset: -2px; }
+  .summary-cards .card .value { position: absolute; left: 16px; top: 11px; font-weight: 600; font-size: 16px; line-height: 24px; letter-spacing: -0.02em; text-transform: uppercase; }
+  .summary-cards .card .label { position: absolute; left: 16px; bottom: 9px; font-weight: 600; font-size: 16px; line-height: 24px; letter-spacing: -0.02em; text-transform: uppercase; }
+
+  /* Right table of races */
+  .summary-table { position: absolute; left: 1440px; top: 304px; width: 448px; height: 544px; background: #F3F3F4; display: flex; flex-direction: column; }
+  .summary-table::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 1px; background: #1A1B1C; }
+  .summary-table .head { position: relative; width: 100%; padding: 12px 16px 8px; display: flex; justify-content: space-between; align-items: center; flex: 0 0 auto; }
+  .summary-table .head .title, .summary-table .head .conf { font-weight: 500; font-size: 16px; line-height: 24px; letter-spacing: -0.02em; text-transform: uppercase; color: #1A1B1C; opacity: 0.8; }
+  .summary-table .rows { position: relative; width: 100%; flex: 1 1 auto; overflow: auto; padding-top: 4px; padding-bottom: 8px; }
+  .summary-row { position: relative; display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 6px 16px 6px 40px; color: #1A1B1C; }
+  .summary-row .name { font-weight: 400; font-size: 16px; line-height: 24px; letter-spacing: -0.02em; }
+  .summary-row .val { font-weight: 400; font-size: 16px; line-height: 24px; letter-spacing: -0.02em; text-align: right; }
+  /* Rotate tick to diamond */
+  .summary-row .radio { position: absolute; left: 16px; width: 12px; height: 12px; box-sizing: border-box; border: 1px solid currentColor; transform: rotate(45deg); }
+  .summary-row .radio .inner { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; background: currentColor; opacity: 0; transform: translate(-50%, -50%); }
+  .summary-row.selected { background: #1A1B1C; color: #FCFCFC; }
+  .summary-row.selected .radio { border-color: #FCFCFC; }
+  .summary-row.selected .radio .inner { opacity: 1; }
+
+  /* Bottom guidance and actions */
+  .summary-instruction {
+    position: absolute; left: 821px; top: 894px; color: #A0A4AB;
+    font-weight: 400; font-size: 16px; line-height: 24px; letter-spacing: -0.02em;
+  }
+  .summary-actions { position: absolute; right: 32px; top: 889px; display: flex; gap: 12px; }
+  .btn-simple { display: inline-flex; align-items: center; height: 35px; padding: 9px 16px 10px; gap: 8px; font-weight: 600; font-size: 14px; line-height: 16px; letter-spacing: -0.02em; text-transform: uppercase; }
+  .btn-simple--outline { border: 1px solid #1A1B1C; color: #1A1B1C; background: transparent; }
+  .btn-simple--primary { background: #1A1B1C; color: #FCFCFC; }
 }
 
 .main-content { 
@@ -434,6 +860,10 @@ body {
 .intro-mini { position:absolute; top:-40px; left:50%; transform:translateX(-50%); font-size:10px; letter-spacing:.8px; color:#8a9399; }
 .back-floating { position:fixed; left:48px; bottom:48px; display:flex; align-items:center; gap:12px; cursor:pointer; z-index:10; }
 .back-floating .diamond-button { width:28px; height:28px; }
+.back-floating--light { color:#FCFCFC; }
+.back-floating--light .diamond { border-color:#FCFCFC; }
+.back-floating--light .diamond-arrow.left { border-right-color:#FCFCFC; }
+.back-floating--light span { color:#FCFCFC; }
 
 .proceed-floating { position:fixed; right:48px; bottom:48px; display:flex; align-items:center; gap:12px; cursor:pointer; z-index:10; }
 .proceed-floating .diamond-button { width:28px; height:28px; }
@@ -1308,21 +1738,21 @@ body {
   align-items: center;
   padding: 12px 16px;
   background: #fff;
-  border: 1px solid #dee2e6;
+  border: 1px solid #dfe3e6;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .score-row:hover {
-  background: #e9ecef;
-  border-color: #007bff;
+  background: #f3f4f5;
+  border-color: #1A1B1C;
 }
 
 .score-row.selected {
-  background: #007bff;
-  border-color: #007bff;
-  color: #fff;
+  background: #1A1B1C;
+  border-color: #1A1B1C;
+  color: #FCFCFC;
 }
 
 .score-name {
@@ -1732,8 +2162,7 @@ body {
   height: auto;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: scaleX(-1); /* Mirror the video for selfie feel */
-}
+  }
 
 .camera-controls {
   display: flex;
@@ -1781,8 +2210,7 @@ body {
   height: auto;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: scaleX(-1); /* Keep the mirror effect for consistency */
-}
+  }
 
 .captured-controls {
   display: flex;

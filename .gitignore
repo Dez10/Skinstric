@@ -1,3 +1,36 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+.vercel/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build artifacts
+coverage/
+*.tsbuildinfo
+
+# Reference/exports (keep in repo if needed, but ignore build caches inside)
+_reference/**/.next/
+_reference/**/out/
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -11,6 +44,9 @@
 # production
 /build
 
+# next build output
+.next/
+
 # misc
 .DS_Store
 .env.local
@@ -21,4 +57,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.next/
+
+# reference/legacy not for source control
+_reference/
+next-migration/
+src/

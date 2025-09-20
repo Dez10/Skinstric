@@ -1,7 +1,10 @@
 "use client";
 import React, { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useJourney } from '../providers/JourneyProvider.jsx';
+import { analyzeImage } from '../../utils/analyzeImage.js';
 
-export default function ImageUpload({ onBack, onComplete, userData }) {
+export default function ImageUpload() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -9,6 +12,8 @@ export default function ImageUpload({ onBack, onComplete, userData }) {
   const [selectedAttributes, setSelectedAttributes] = useState({});
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+  const router = useRouter();
+  const { setAcquisition, setDemographicsRaw, setSelectedAttributes: setSelectedContext, acquisition } = useJourney();
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -55,134 +60,30 @@ export default function ImageUpload({ onBack, onComplete, userData }) {
       setError('Please select an image first.');
       return;
     }
-
     setIsAnalyzing(true);
     setError('');
-
     try {
-      // Convert image to base64
       const base64Image = await convertToBase64(selectedFile);
-      console.log('Base64 length:', base64Image.length);
-      console.log('Base64 sample:', base64Image.substring(0, 100) + '...');
-
-      let result;
-      
-      // Try first format: lowercase 'image'
-      try {
-        const payload1 = {
-          image: base64Image
-        };
-        console.log('Trying payload with lowercase "image" key');
-
-        const response1 = await fetch('https://us-central1-frontend-simplified.cloudfunctions.net/skinstricPhaseTwo', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload1)
-        });
-
-        if (response1.ok) {
-          result = await response1.json();
-          console.log('Success with lowercase "image" key:', result);
-        } else {
-          const errorText1 = await response1.text();
-          console.log('First attempt failed:', response1.status, errorText1);
-          throw new Error('Try next format');
-        }
-      } catch (firstAttemptError) {
-        console.log('Trying second format: uppercase "Image"');
-        
-        // Try second format: uppercase 'Image'
-        try {
-          const payload2 = {
-            Image: base64Image
-          };
-
-          const response2 = await fetch('https://us-central1-frontend-simplified.cloudfunctions.net/skinstricPhaseTwo', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload2)
-          });
-
-          if (response2.ok) {
-            result = await response2.json();
-            console.log('Success with uppercase "Image" key:', result);
-          } else {
-            const errorText2 = await response2.text();
-            console.log('Second attempt failed:', response2.status, errorText2);
-            throw new Error('Try next format');
-          }
-        } catch (secondAttemptError) {
-          console.log('Trying third format: full data URL');
-          
-          // Try third format: full data URL
-          const payload3 = {
-            Image: `data:${selectedFile.type};base64,${base64Image}`
-          };
-
-          const response3 = await fetch('https://us-central1-frontend-simplified.cloudfunctions.net/skinstricPhaseTwo', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload3)
-          });
-
-          if (!response3.ok) {
-            const errorText3 = await response3.text();
-            console.error('All attempts failed. Final error:', response3.status, errorText3);
-            throw new Error(`Analysis failed: ${response3.status} ${response3.statusText} - ${errorText3}`);
-          }
-
-          result = await response3.json();
-          console.log('Success with data URL format:', result);
-        }
-      }
-
-      // Process the result
-      processApiResult(result);
-
-    } catch (error) {
-      console.error('Analysis error:', error);
+      const normalized = await analyzeImage(base64Image);
+      setDemographics(normalized);
+      const pickTop = (obj) => {
+        const arr = Object.entries(obj || {}).sort((a,b)=>b[1]-a[1]);
+        return arr.length ? arr[0][0] : '';
+      };
+      const initialSelected = {
+        race: pickTop(normalized.race),
+        age: pickTop(normalized.age),
+        gender: pickTop(normalized.gender)
+      };
+      setSelectedAttributes(initialSelected);
+      setSelectedContext(initialSelected);
+      setAcquisition({ type: 'upload', imageDataUrl: imagePreview, fileName: selectedFile.name });
+      setDemographicsRaw(normalized);
+    } catch (err) {
+      console.error('Analysis error:', err);
       setError('Analysis failed. Please try again.');
     } finally {
       setIsAnalyzing(false);
-    }
-  };
-
-  // Helper function to process API result
-  const processApiResult = (result) => {
-    // Check for different possible response structures
-    if (result.data) {
-      setDemographics(result.data);
-      // Initialize with top predictions
-      const topRace = Object.entries(result.data.race || {}).sort((a, b) => b[1] - a[1])[0];
-      const topAge = Object.entries(result.data.age || {}).sort((a, b) => b[1] - a[1])[0];
-      const topGender = Object.entries(result.data.gender || {}).sort((a, b) => b[1] - a[1])[0];
-      
-      setSelectedAttributes({
-        race: topRace ? topRace[0] : '',
-        age: topAge ? topAge[0] : '',
-        gender: topGender ? topGender[0] : ''
-      });
-    } else if (result.race || result.age || result.gender) {
-      // Direct format without 'data' wrapper
-      setDemographics(result);
-      const topRace = Object.entries(result.race || {}).sort((a, b) => b[1] - a[1])[0];
-      const topAge = Object.entries(result.age || {}).sort((a, b) => b[1] - a[1])[0];
-      const topGender = Object.entries(result.gender || {}).sort((a, b) => b[1] - a[1])[0];
-      
-      setSelectedAttributes({
-        race: topRace ? topRace[0] : '',
-        age: topAge ? topAge[0] : '',
-        gender: topGender ? topGender[0] : ''
-      });
-    } else {
-      console.warn('Unexpected response structure:', result);
-      throw new Error('Invalid response format - no demographics data found');
     }
   };
 
@@ -205,13 +106,7 @@ export default function ImageUpload({ onBack, onComplete, userData }) {
   };
 
   const handleProceed = () => {
-    onComplete({
-      ...userData,
-      imageFile: selectedFile,
-      imagePreview: imagePreview,
-      demographics: demographics,
-      selectedAttributes: selectedAttributes
-    });
+    router.push('/result');
   };
 
   const triggerFileInput = () => {
@@ -338,9 +233,7 @@ export default function ImageUpload({ onBack, onComplete, userData }) {
 
         {/* Navigation */}
         <div className="upload-actions">
-          <button className="btn btn-secondary" onClick={onBack}>
-            Back
-          </button>
+          <button className="btn btn-secondary" onClick={() => router.push('/select')} disabled={isAnalyzing}>Back</button>
           {demographics && (
             <button className="btn btn-primary" onClick={handleProceed}>
               Proceed

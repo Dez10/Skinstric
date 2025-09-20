@@ -1,0 +1,23 @@
+# Exclude design references and legacy folders from upload/build context
+_reference/
+next-migration/
+src/
+
+# Local caches and outputs
+.next/
+out/
+coverage/
+# Exclude reference and legacy migration artifacts from deployments
+_reference/
+next-migration/
+src/
+
+# Local build output and caches
+.next/
+node_modules/
+coverage/
+
+# Misc
+*.log
+.DS_Store
+Thumbs.db

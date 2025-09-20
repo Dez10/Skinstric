@@ -1,7 +1,10 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useJourney } from '../providers/JourneyProvider.jsx';
+import { analyzeImage } from '../../utils/analyzeImage.js';
 
-export default function SelfieCapture({ onBack, onComplete, userData }) {
+export default function SelfieCapture({ autoStart = false, fullScreen = false }) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [showFloatInfo, setShowFloatInfo] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
@@ -10,29 +13,34 @@ export default function SelfieCapture({ onBack, onComplete, userData }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [demographics, setDemographics] = useState(null);
   const [selectedAttributes, setSelectedAttributes] = useState({});
-  const [cameraPermission, setCameraPermission] = useState('prompt'); // 'granted', 'denied', 'prompt'
+  const [cameraPermission, setCameraPermission] = useState('prompt');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const router = useRouter();
+  const { setAcquisition, setDemographicsRaw, setSelectedAttributes: setSelectedContext } = useJourney();
 
-  // Check camera permissions on mount
+  // Check camera permissions on mount and optionally auto start
   useEffect(() => {
-    const checkCameraPermission = async () => {
+    const setup = async () => {
       try {
         if (navigator.permissions) {
           const permission = await navigator.permissions.query({ name: 'camera' });
           setCameraPermission(permission.state);
-          
-          permission.onchange = () => {
-            setCameraPermission(permission.state);
-          };
+          permission.onchange = () => setCameraPermission(permission.state);
+          if (autoStart && permission.state !== 'denied') {
+            startCamera();
+          }
+        } else if (autoStart) {
+          // Fallback: attempt start if Permissions API not present
+          startCamera();
         }
       } catch (err) {
-        console.log('Permission API not supported:', err);
+        if (autoStart) startCamera();
       }
     };
-    
-    checkCameraPermission();
-  }, []);
+    setup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   // Start camera
   const startCamera = async () => {
@@ -148,6 +156,10 @@ export default function SelfieCapture({ onBack, onComplete, userData }) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
+    if (videoRef.current) {
+      try { videoRef.current.pause(); } catch {}
+      videoRef.current.srcObject = null;
+    }
     setIsCapturing(false);
   };
 
@@ -190,102 +202,35 @@ export default function SelfieCapture({ onBack, onComplete, userData }) {
     return dataUrl.split(',')[1];
   };
 
-  // Analyze the captured selfie
+  // Analyze the captured selfie using shared util
   const analyzeSelfie = async () => {
     if (!capturedImage) {
       setError('No image captured.');
       return;
     }
-
     setIsAnalyzing(true);
     setError('');
-
     try {
       const base64Image = getBase64FromDataUrl(capturedImage);
-      console.log('Analyzing selfie, base64 length:', base64Image.length);
-
-      let result;
-      
-      // Try first format: lowercase 'image'
-      try {
-        const payload1 = {
-          image: base64Image
-        };
-        console.log('Trying selfie analysis with lowercase "image" key');
-
-        const response1 = await fetch('https://us-central1-frontend-simplified.cloudfunctions.net/skinstricPhaseTwo', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload1)
-        });
-
-        if (response1.ok) {
-          result = await response1.json();
-          console.log('Selfie analysis success with lowercase "image" key:', result);
-        } else {
-          const errorText1 = await response1.text();
-          console.log('First selfie attempt failed:', response1.status, errorText1);
-          throw new Error('Try next format');
-        }
-      } catch (firstAttemptError) {
-        console.log('Trying second format: uppercase "Image"');
-        
-        // Try second format: uppercase 'Image'
-        try {
-          const payload2 = {
-            Image: base64Image
-          };
-
-          const response2 = await fetch('https://us-central1-frontend-simplified.cloudfunctions.net/skinstricPhaseTwo', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload2)
-          });
-
-          if (response2.ok) {
-            result = await response2.json();
-            console.log('Selfie analysis success with uppercase "Image" key:', result);
-          } else {
-            const errorText2 = await response2.text();
-            console.log('Second selfie attempt failed:', response2.status, errorText2);
-            throw new Error('Try next format');
-          }
-        } catch (secondAttemptError) {
-          console.log('Trying third format: full data URL');
-          
-          // Try third format: full data URL
-          const payload3 = {
-            Image: capturedImage // Full data URL
-          };
-
-          const response3 = await fetch('https://us-central1-frontend-simplified.cloudfunctions.net/skinstricPhaseTwo', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload3)
-          });
-
-          if (!response3.ok) {
-            const errorText3 = await response3.text();
-            console.error('All selfie analysis attempts failed. Final error:', response3.status, errorText3);
-            throw new Error(`Analysis failed: ${response3.status} ${response3.statusText} - ${errorText3}`);
-          }
-
-          result = await response3.json();
-          console.log('Selfie analysis success with data URL format:', result);
-        }
-      }
-      
-      // Process the result and show demographics
-      processApiResult(result);
-
-    } catch (error) {
-      console.error('Selfie analysis error:', error);
+      const normalized = await analyzeImage(base64Image);
+      setDemographics(normalized);
+      const pickTop = (obj) => {
+        const arr = Object.entries(obj || {}).sort((a,b)=>b[1]-a[1]);
+        return arr.length ? arr[0][0] : '';
+      };
+      const initialSelected = {
+        race: pickTop(normalized.race),
+        age: pickTop(normalized.age),
+        gender: pickTop(normalized.gender)
+      };
+      setSelectedAttributes(initialSelected);
+      setSelectedContext(initialSelected);
+      setAcquisition({ type: 'selfie', imageDataUrl: capturedImage });
+      setDemographicsRaw(normalized);
+      // Navigate to results so URL reflects the new page (instead of staying on /camera/capture)
+      router.push('/result');
+    } catch (err) {
+      console.error('Selfie analysis error:', err);
       setError('Analysis failed. Please try again.');
     } finally {
       setIsAnalyzing(false);
@@ -344,13 +289,7 @@ export default function SelfieCapture({ onBack, onComplete, userData }) {
   };
 
   const handleProceed = () => {
-    // Combine with previous data and pass to next phase
-    onComplete({
-      ...userData,
-      selfieImage: capturedImage,
-      demographics: demographics,
-      selectedAttributes: selectedAttributes
-    });
+    router.push('/result');
   };
 
   // Cleanup on unmount
@@ -361,19 +300,26 @@ export default function SelfieCapture({ onBack, onComplete, userData }) {
   }, []);
 
   const retakeSelfie = () => {
-  setCapturedImage(null);
-  setShowFloatInfo(true);
+    // Clear previous results and errors
+    setCapturedImage(null);
+    setDemographics(null);
+    setSelectedAttributes({});
+    setError('');
+    // Ensure any previous stream is stopped, then restart camera
+    stopCamera();
+    setShowFloatInfo(false);
+    startCamera();
   };
 
   return (
-    <div className="selfie-capture-container">
-      <div className="selfie-capture-content">
-        <div className="camera-section">
-          {!isCapturing && !capturedImage && (
+    <div className={fullScreen ? "w-full h-screen flex flex-col" : "selfie-capture-container"}>
+      <div className={fullScreen ? "flex-1 flex flex-col" : "selfie-capture-content"}>
+        <div className={fullScreen ? "flex-1 flex flex-col items-center justify-center" : "camera-section"}>
+          {/* In fullScreen mode we skip the initial placeholder UI entirely. */}
+          {!fullScreen && !isCapturing && !capturedImage && (
             <div className="camera-start">
               <div className="camera-icon" onClick={startCamera} style={{ cursor: 'pointer' }}>📷</div>
               <p>Ready to take your selfie?</p>
-              
               {cameraPermission === 'denied' && (
                 <div className="permission-warning">
                   <p style={{ color: 'red' }}>
@@ -381,58 +327,69 @@ export default function SelfieCapture({ onBack, onComplete, userData }) {
                   </p>
                 </div>
               )}
-              
-
-              
-
             </div>
           )}
 
           {isCapturing && (
-            <div className="camera-view">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="camera-video"
-                style={{ 
-                  transform: 'scaleX(-1)', // Mirror effect for selfie
-                  width: '100%',
-                  maxWidth: '600px',
-                  height: 'auto'
-                }}
-                onCanPlay={() => console.log('Video can play')}
-                onError={(e) => {
+            <>
+              <VideoWithFaceBlur
+                videoRef={videoRef}
+                fullScreen={fullScreen}
+                onVideoError={(e) => {
                   console.error('Video error:', e);
                   setError('Video playback error. Please try again.');
                 }}
               />
-              <div className="camera-controls">
-                <button className="capture-btn" onClick={capturePhoto}>
-                  📸 Capture
-                </button>
-                <button className="cancel-btn" onClick={stopCamera}>
-                  Cancel
-                </button>
-              </div>
-            </div>
+              {/* Fullscreen overlay controls (right side) */}
+              {fullScreen ? (
+                <>
+                  {/* Fixed viewport-positioned capture CTA on right-center */}
+                  <div className="capture-cta-pos pointer-events-none">
+                    <span className="capture-cta__label select-none">TAKE PICTURE</span>
+                    <button
+                      type="button"
+                      aria-label="Take picture"
+                      className="capture-cta__button pointer-events-auto"
+                      onClick={capturePhoto}
+                    >
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ position:'relative', zIndex:1 }}>
+                        <path d="M4 9h3l1.2-2.4A2 2 0 0 1 10 5h4a2 2 0 0 1 1.8 1.1L17 9h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z" stroke="#A0A4AB" strokeWidth="1.5"/>
+                        <circle cx="12" cy="14" r="3.5" stroke="#A0A4AB" strokeWidth="1.5"/>
+                      </svg>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="camera-controls">
+                  <button className="capture-btn" onClick={capturePhoto}>📸 Capture</button>
+                  <button className="cancel-btn" onClick={stopCamera}>Cancel</button>
+                </div>
+              )}
+            </>
           )}
 
           {capturedImage && !demographics && (
-            <div className="image-preview-section">
-              <img src={capturedImage} alt="Captured selfie" className="captured-selfie" />
-              <div className="preview-controls">
-                <button className="retake-btn" onClick={retakeSelfie}>
-                  Retake
-                </button>
-                <button 
-                  className="analyze-selfie-btn" 
-                  onClick={analyzeSelfie}
-                  disabled={isAnalyzing}
-                >
-                  {isAnalyzing ? 'Analyzing...' : 'Analyze Selfie'}
-                </button>
+            <div className="preview-overlay" aria-live="polite">
+              {/* Full-bleed captured frame */}
+              <img src={capturedImage} alt="Captured selfie preview" className="preview-image" />
+
+              {/* Center toast */}
+              <div className="preview-toast">GREAT SHOT!</div>
+
+              {/* Bottom panel */}
+              <div className="preview-panel">
+                <div className="preview-heading">Preview</div>
+                <div className="preview-actions">
+                  <button type="button" className="btn-retake" onClick={retakeSelfie}>Retake</button>
+                  <button
+                    type="button"
+                    className="btn-use"
+                    onClick={analyzeSelfie}
+                    disabled={isAnalyzing}
+                  >
+                    {isAnalyzing ? 'Analyzing…' : 'Use This Photo'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -521,24 +478,166 @@ export default function SelfieCapture({ onBack, onComplete, userData }) {
           </div>
         )}
 
-        <div className="selfie-actions">
-          <button 
-            className="back-btn" 
-            onClick={onBack}
-            disabled={isAnalyzing}
-          >
-            ← Back
-          </button>
-          {demographics && (
+        {!fullScreen && (
+          <div className="selfie-actions">
             <button 
-              className="proceed-btn"
-              onClick={handleProceed}
+              className="back-btn" 
+              onClick={() => router.push('/select')}
+              disabled={isAnalyzing}
             >
-              Proceed →
+              ← Back
             </button>
-          )}
-        </div>
+            {demographics && (
+              <button 
+                className="proceed-btn"
+                onClick={handleProceed}
+              >
+                Proceed →
+              </button>
+            )}
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+// Lightweight video + face blur overlay using FaceDetector API
+function VideoWithFaceBlur({ videoRef, fullScreen, onVideoError }) {
+  const overlayRef = useRef(null);
+  const containerRef = useRef(null);
+  const facesRef = useRef([]);
+  const detectorRef = useRef(null);
+  const rafRef = useRef(null);
+  const offscreenRef = useRef(null);
+
+  useEffect(() => {
+    const hasFaceDetector = typeof window !== 'undefined' && 'FaceDetector' in window;
+    if (hasFaceDetector && !detectorRef.current) {
+      try {
+        // eslint-disable-next-line no-undef
+        detectorRef.current = new FaceDetector({ fastMode: true, maxDetectedFaces: 2 });
+      } catch (e) {
+        detectorRef.current = null;
+      }
+    }
+
+    const overlay = overlayRef.current;
+    const container = containerRef.current;
+    if (!overlay || !container) return;
+
+    const off = document.createElement('canvas');
+    offscreenRef.current = off;
+
+    let lastDetect = 0;
+    const DETECT_INTERVAL = 150; // ms
+
+    const loop = () => {
+      const video = videoRef.current;
+      const ctx = overlay.getContext('2d');
+      if (!video || !ctx) {
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
+
+      const cw = container.clientWidth || 0;
+      const ch = container.clientHeight || 0;
+      if (cw === 0 || ch === 0) {
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
+
+      // Size canvases to container display size
+      if (overlay.width !== cw || overlay.height !== ch) {
+        overlay.width = cw; overlay.height = ch;
+      }
+      if (off.width !== cw || off.height !== ch) {
+        off.width = cw; off.height = ch;
+      }
+
+      const vW = video.videoWidth || 0;
+      const vH = video.videoHeight || 0;
+      // Clear overlay first
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+      if (vW > 0 && vH > 0) {
+        // Draw video frame into offscreen using CSS object-cover math
+        const s = Math.max(cw / vW, ch / vH);
+        const dW = vW * s;
+        const dH = vH * s;
+        const dx = (cw - dW) / 2;
+        const dy = (ch - dH) / 2;
+
+        const offCtx = off.getContext('2d');
+        offCtx.clearRect(0, 0, cw, ch);
+        offCtx.drawImage(video, dx, dy, dW, dH);
+
+        // Throttled face detection
+        const now = performance.now();
+        if (detectorRef.current && (now - lastDetect) > DETECT_INTERVAL) {
+          lastDetect = now;
+          detectorRef.current.detect(video).then(results => {
+            facesRef.current = (results || []).map(r => r.boundingBox || r); // normalize
+          }).catch(() => { /* ignore */ });
+        }
+
+        const faces = facesRef.current || [];
+        if (faces.length === 0 && !detectorRef.current) {
+          // Fallback: approximate center region when no detector support
+          const approx = [{
+            x: cw * 0.35, y: ch * 0.25, width: cw * 0.3, height: ch * 0.45
+          }];
+          drawBlurRegions(ctx, off, approx);
+        } else if (faces.length > 0) {
+          // Map detector rectangles (video space) to display space
+          const mapped = faces.map(bb => ({
+            x: bb.x * s + dx,
+            y: bb.y * s + dy,
+            width: bb.width * s,
+            height: bb.height * s
+          }));
+          drawBlurRegions(ctx, off, mapped);
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(loop);
+    };
+
+    rafRef.current = requestAnimationFrame(loop);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [videoRef]);
+
+  // Helper: draw blurred frame clipped to regions
+  const drawBlurRegions = (ctx, offCanvas, rects) => {
+    rects.forEach(r => {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(r.x, r.y, r.width, r.height);
+      ctx.clip();
+      ctx.filter = 'blur(16px)';
+      ctx.drawImage(offCanvas, 0, 0);
+      ctx.restore();
+    });
+  };
+
+  return (
+    <div ref={containerRef} className={fullScreen ? 'relative w-full h-full' : 'camera-view relative'}>
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className={fullScreen ? 'object-cover w-full h-full' : 'camera-video'}
+        style={fullScreen ? { transform: 'scaleX(-1)' } : { transform: 'scaleX(-1)', width: '100%', maxWidth: '600px', height: 'auto' }}
+        onCanPlay={() => {/* no-op */}}
+        onError={onVideoError}
+      />
+      <canvas
+        ref={overlayRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={fullScreen ? { transform: 'scaleX(-1)' } : { transform: 'scaleX(-1)' }}
+      />
     </div>
   );
 }
