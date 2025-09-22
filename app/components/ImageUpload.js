@@ -79,6 +79,8 @@ export default function ImageUpload() {
       setSelectedContext(initialSelected);
       setAcquisition({ type: 'upload', imageDataUrl: imagePreview, fileName: selectedFile.name });
       setDemographicsRaw(normalized);
+      // Navigate to results so URL reflects the new page (mirror camera capture flow)
+      router.push('/result');
     } catch (err) {
       console.error('Analysis error:', err);
       setError('Analysis failed. Please try again.');

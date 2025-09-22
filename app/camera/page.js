@@ -29,13 +29,13 @@ export default function CameraIntroPage() {
   }, [router]);
 
   return (
-  <div className="flex flex-col items-center text-center px-4 sm:px-6 py-14 sm:py-16 gap-10 sm:gap-12">
-      <CameraIntroGraphic className="w-full max-w-[740px] aspect-square" />
-      <div className="mt-[-40px]" aria-label="To get better results make sure to have: Neutral expression, Frontal pose, Adequate lighting">
+  <div className="flex flex-col items-center text-center px-4 sm:px-6 py-14 sm:py-16 gap-10 sm:gap-12 camera-intro-stack">
+      <CameraIntroGraphic className="camera-intro-graphic" />
+      <div className="mt-[-24px] camera-intro-caption" aria-label="To get better results make sure to have: Neutral expression, Frontal pose, Adequate lighting">
         <img
           src="/images/ui-elements/Group 39763.svg"
           alt="Guidelines: neutral expression, frontal pose, adequate lighting"
-          className="mx-auto w-[492px] max-w-full select-none"
+          className="mx-auto select-none"
           draggable="false"
         />
       </div>
@@ -44,7 +44,7 @@ export default function CameraIntroPage() {
         Setting up camera, redirecting to capture.
       </div>
       {/* Loading bar */}
-      <div className="w-full max-w-md h-1 bg-neutral-200 overflow-hidden rounded mt-4">
+      <div className="w-full h-1 bg-neutral-200 overflow-hidden rounded mt-4 camera-intro-bar">
         <div className="h-full bg-black transition-[width] duration-75" style={{ width: `${Math.round(progress*100)}%` }} />
       </div>
       <BackFloating to="/select" />

@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRequireDemographics } from '../components/guards';
 import { useJourney } from '../providers/JourneyProvider.jsx';
@@ -13,7 +13,8 @@ export default function SummaryPage() {
   const { race = {}, age = {}, gender = {} } = analysisData;
 
   const selected = demographics?.selected || { race: null, age: null, gender: null };
-  const [activeCategory, setActiveCategory] = useState('race'); // 'race' | 'age' | 'gender'
+  const [activeCategory, setActiveCategory] = useState('race'); // drives content/table
+  const [highlightCategory, setHighlightCategory] = useState(null); // drives visual highlight only
 
   const sortedRace = useMemo(() => Object.entries(race)
     .sort(([, a], [, b]) => b - a)
@@ -69,66 +70,21 @@ export default function SummaryPage() {
     }
   }, [currentPct]);
 
-  // Force the 1920x960 absolute board to scale-to-fit viewport reliably on all mobile browsers
-  const boardRef = useRef(null);
-  useEffect(() => {
-    if (!boardRef.current) return;
-
-    const DESIGN_W = 1920;
-    const DESIGN_H = 960;
-
-    const applyScale = () => {
-      let vw = window.innerWidth;
-      let vh = window.innerHeight;
-      if (window.visualViewport) {
-        vw = window.visualViewport.width;
-        vh = window.visualViewport.height;
-      }
-      const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
-      const tx = (vw - DESIGN_W * scale) / 2;
-      const ty = (vh - DESIGN_H * scale) / 2;
-      const el = boardRef.current;
-      if (!el) return;
-      el.style.position = 'fixed';
-      el.style.left = '0px';
-      el.style.top = '0px';
-      el.style.width = `${DESIGN_W}px`;
-      el.style.height = `${DESIGN_H}px`;
-      el.style.transformOrigin = 'top left';
-      el.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
-      el.style.zIndex = '1';
-    };
-
-    applyScale();
-    const onResize = () => applyScale();
-    window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', onResize);
-    }
-    return () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('orientationchange', onResize);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', onResize);
-      }
-    };
-  }, []);
-
   return (
-    <div className="summary-canvas" aria-label="Summary layout">
-      <div className="summary-subhead">A. I. Analysis</div>
+  <div className="viewport-frame vp-under">
+      <div className="ar-2-1">
+        <div className="summary-canvas" aria-label="Summary layout">
 
-      {/* Headings as per reference screenshot */}
+      {/* Header */}
       <div className="summary-header">
-        <div className="summary-kicker">A.I. ANALYSIS</div>
+        <div className="summary-kicker">A. I. ANALYSIS</div>
         <h2 className="summary-heading">DEMOGRAPHICS</h2>
         <h3 className="summary-section-subtitle">PREDICTED RACE & AGE</h3>
       </div>
 
       {/* Absolute layout for large screens (1920x960 spec) */}
       {hasAnalysisData && (
-  <div className="summary-absolute" aria-hidden={false} ref={boardRef}>
+        <div className="summary-absolute" aria-hidden={false}>
           {/* Main board */}
           <div className="summary-board" />
           <div className="summary-board-title">{(currentKey ?? '-').toString().replace(/_/g, ' ')}</div>
@@ -161,34 +117,34 @@ export default function SummaryPage() {
           {/* Left side mini cards */}
           <div className="summary-cards">
             <div
-              className={`card card--race${activeCategory === 'race' ? ' is-active' : ''}`}
+              className={`card card--race${highlightCategory === 'race' ? ' is-active' : ''}`}
               role="button"
               tabIndex={0}
-              aria-pressed={activeCategory === 'race'}
-              onClick={() => { if (sortedRace.length) setActiveCategory('race'); }}
-              onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && sortedRace.length) { e.preventDefault(); setActiveCategory('race'); } }}
+              aria-pressed={highlightCategory === 'race'}
+              onClick={() => { if (sortedRace.length) { setActiveCategory('race'); setHighlightCategory('race'); } }}
+              onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && sortedRace.length) { e.preventDefault(); setActiveCategory('race'); setHighlightCategory('race'); } }}
             >
               <div className="value">{(selected.race || topRace).toString().replace(/_/g, ' ')}</div>
               <div className="label">race</div>
             </div>
             <div
-              className={`card card--age${activeCategory === 'age' ? ' is-active' : ''}`}
+              className={`card card--age${highlightCategory === 'age' ? ' is-active' : ''}`}
               role="button"
               tabIndex={0}
-              aria-pressed={activeCategory === 'age'}
-              onClick={() => { if (sortedAge.length) setActiveCategory('age'); }}
-              onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && sortedAge.length) { e.preventDefault(); setActiveCategory('age'); } }}
+              aria-pressed={highlightCategory === 'age'}
+              onClick={() => { if (sortedAge.length) { setActiveCategory('age'); setHighlightCategory('age'); } }}
+              onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && sortedAge.length) { e.preventDefault(); setActiveCategory('age'); setHighlightCategory('age'); } }}
             >
               <div className="value">{(selected.age || topAge).toString()}</div>
               <div className="label">Age</div>
             </div>
             <div
-              className={`card card--sex${activeCategory === 'gender' ? ' is-active' : ''}`}
+              className={`card card--sex${highlightCategory === 'gender' ? ' is-active' : ''}`}
               role="button"
               tabIndex={0}
-              aria-pressed={activeCategory === 'gender'}
-              onClick={() => { if (sortedGender.length) setActiveCategory('gender'); }}
-              onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && sortedGender.length) { e.preventDefault(); setActiveCategory('gender'); } }}
+              aria-pressed={highlightCategory === 'gender'}
+              onClick={() => { if (sortedGender.length) { setActiveCategory('gender'); setHighlightCategory('gender'); } }}
+              onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && sortedGender.length) { e.preventDefault(); setActiveCategory('gender'); setHighlightCategory('gender'); } }}
             >
               <div className="value">{(selected.gender || topGender).toString()}</div>
               <div className="label">Sex</div>
@@ -341,6 +297,8 @@ export default function SummaryPage() {
           <div className="diamond">
             <span className="diamond-arrow right" />
           </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>

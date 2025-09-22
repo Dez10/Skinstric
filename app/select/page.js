@@ -8,12 +8,12 @@ export default function SelectPage() {
   return (
     <>
       <div className="h-[72px]" aria-hidden="true" />
-      <h1
+      <div
         className="analysis-text"
-        style={{ position: 'relative', zIndex: 20, paddingLeft: '60px' }}
+        style={{ position: 'fixed', top: '72px', left: '60px', zIndex: 20 }}
       >
         TO START ANALYSIS
-      </h1>
+      </div>
       <CameraGallerySelection />
       <BackFloating to="/intro" />
     </>

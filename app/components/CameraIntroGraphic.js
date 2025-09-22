@@ -10,12 +10,18 @@ import React from 'react';
  *  - showStatus/statusText: optional status message beneath camera icon inside SVG
  * Tailwind classes animate-spin-slow/ slower/ slowest assumed present; if not, define in globals.
  */
-export default function CameraIntroGraphic({ size = 740, className = "", showStatus = true, statusText = 'SETTING UP CAMERA...' }) {
-  const dimension = typeof size === 'number' ? `${size}px` : size;
+export default function CameraIntroGraphic({ size = undefined, className = "", showStatus = true, statusText = 'SETTING UP CAMERA...' }) {
+  // Let CSS control sizing by default; only set explicit dimensions if a size is provided
+  const style = { maxWidth: '100%', maxHeight: '100%' };
+  if (size != null) {
+    const dim = typeof size === 'number' ? `${size}px` : size;
+    style.width = dim;
+    style.height = dim;
+  }
   return (
     <div
       className={"relative " + className}
-      style={{ width: dimension, height: dimension, maxWidth: '100%', maxHeight: '100%' }}
+      style={style}
       aria-hidden="true"
     >
       <svg

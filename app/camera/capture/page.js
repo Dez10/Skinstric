@@ -7,11 +7,15 @@ import BackFloating from '../../components/BackFloating';
 export default function CameraCapturePage() {
   useRequireIdentity();
   return (
-    <div className="relative w-full h-full flex flex-col flex-1">
-      <SelfieCapture autoStart fullScreen />
-      <BackFloating to="/select" light />
-      <div className="guidelines-fixed-pos">
-        <GlobalFooterGuidelines light />
+  <div className="viewport-frame camera-capture">
+      <div className="ar-2-1">
+        <div className="analysis-canvas">
+          <SelfieCapture autoStart fullScreen />
+          <BackFloating to="/select" light />
+          <div className="guidelines-fixed-pos">
+            <GlobalFooterGuidelines light />
+          </div>
+        </div>
       </div>
     </div>
   );

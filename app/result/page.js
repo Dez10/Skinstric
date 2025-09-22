@@ -9,7 +9,9 @@ export default function ResultPage() {
   const [hoverRing, setHoverRing] = useState(null); // 0=inner, 1=middle, 2=outer, null=hidden
   // Analysis layout canvas with exact-positioned subhead per spec
   return (
-    <div className="analysis-canvas" aria-label="Results layout">
+    <div className="viewport-frame">
+      <div className="ar-2-1">
+        <div className="analysis-canvas" aria-label="Results layout">
       <div className="analysis-subhead">A. I. Analysis</div>
   <div className="analysis-caption">A. I. has estimated the following. Fix&nbsp;estimated information if needed.</div>
       {/* Future: dotted rings and diamond cluster will be placed here */}
@@ -114,6 +116,8 @@ export default function ResultPage() {
           <div className="diamond">
             <span className="diamond-arrow right" />
           </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
