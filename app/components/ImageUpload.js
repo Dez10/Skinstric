@@ -5,15 +5,28 @@ import { useJourney } from '../providers/JourneyProvider.jsx';
 import { analyzeImage } from '../../utils/analyzeImage.js';
 
 export default function ImageUpload() {
-  const [selectedFile, setSelectedFile] = useState(null);
+  const router = useRouter();
+  const { setAcquisition, setDemographicsRaw, setSelectedAttributes: setSelectedContext, acquisition } = useJourney();
+  
+  // Initialize state with the file from acquisition context if it exists
+  const [selectedFile, setSelectedFile] = useState(acquisition?.file || null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [demographics, setDemographics] = useState(null);
   const [selectedAttributes, setSelectedAttributes] = useState({});
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
-  const router = useRouter();
-  const { setAcquisition, setDemographicsRaw, setSelectedAttributes: setSelectedContext, acquisition } = useJourney();
+  
+  // If we already have a file from the gallery selection, create the preview
+  React.useEffect(() => {
+    if (acquisition?.file && !imagePreview) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(acquisition.file);
+    }
+  }, [acquisition, imagePreview]);
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];

@@ -3,29 +3,164 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useJourney } from '../providers/JourneyProvider.jsx';
+import { analyzeImage } from '../../utils/analyzeImage.js';
 
 export default function CameraGallerySelection() {
   const [showFloatInfo, setShowFloatInfo] = useState(false);
   const rootRef = useRef(null);
   const router = useRouter();
-  const { setAcquisition } = useJourney();
+  const { setAcquisition, setDemographicsRaw, setSelectedAttributes } = useJourney();
+  
+  // States for gallery image processing
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState('');
+
   useEffect(() => {
     // mark as mounted to trigger CSS label reveal
     if (rootRef.current) rootRef.current.classList.add('mounted');
     return () => { if (rootRef.current) rootRef.current.classList.remove('mounted'); };
   }, []);
+
+  // Effect to analyze image automatically when a file is selected
+  useEffect(() => {
+    if (selectedFile && imagePreview) {
+      analyzeSelectedImage();
+    }
+  }, [selectedFile, imagePreview]);
+
   const proceedCamera = () => {
     setAcquisition({ type: 'selfie' });
     router.push('/camera');
   };
+
+  // Create a hidden file input element
+  const fileInputRef = useRef(null);
+
+  // Updated proceedGallery to directly open file manager
   const proceedGallery = () => {
     setAcquisition({ type: 'upload' });
-    router.push('/upload');
+    // Trigger the hidden file input click event to open file manager
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  // Handle file selection from the file manager
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file.');
+        return;
+      }
+
+      // Validate file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('File size must be less than 10MB.');
+        return;
+      }
+      
+      setSelectedFile(file);
+      setError('');
+
+      // Store the selected file in the journey context
+      setAcquisition({ 
+        type: 'upload', 
+        file: file 
+      });
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  // Function to analyze the selected image
+  const analyzeSelectedImage = async () => {
+    if (!selectedFile || !imagePreview) return;
+    
+    setIsAnalyzing(true);
+    
+    try {
+      // Convert to base64
+      const base64 = imagePreview;
+      
+      // Send to analysis API
+      const demographics = await analyzeImage(base64);
+      
+      // Store demographics data in context
+      setDemographicsRaw(demographics);
+      
+      // Initialize selected attributes with highest confidence scores
+      const pickTop = (obj) => {
+        const arr = Object.entries(obj || {}).sort((a,b)=>b[1]-a[1]);
+        return arr.length ? arr[0][0] : '';
+      };
+      
+      const selectedAttrs = {
+        race: pickTop(demographics.race),
+        age: pickTop(demographics.age),
+        gender: pickTop(demographics.gender)
+      };
+      setSelectedAttributes(selectedAttrs);
+      setDemographicsRaw(demographics);
+      setAcquisition({ 
+        type: 'upload', 
+        imageDataUrl: base64, 
+        fileName: selectedFile.name 
+      });
+      
+      // Navigate to the results page
+      router.push('/result');
+    } catch (err) {
+      console.error('Error analyzing image:', err);
+      setError('Failed to analyze image. Please try again.');
+      setIsAnalyzing(false);
+    }
   };
   return (
     <div className="camera-gallery-container" ref={rootRef}>
+      {/* Hidden file input for direct file selection */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        accept="image/*"
+        style={{ display: 'none' }}
+        aria-hidden="true"
+      />
       <div className="camera-gallery-content" role="group" aria-label="Choose image source">
-        {showFloatInfo && typeof window !== 'undefined'
+        {isAnalyzing ? (
+          <div className="analysis-in-progress">
+            <div className="analyzing-layout">
+              <div className="rotating-svg-container analyzing-rotate">
+                <div className="rot-set">
+                  <div className="rot-sq outer" />
+                  <div className="rot-sq mid" />
+                  <div className="rot-sq inner" />
+                </div>
+                <span className="analyzing-text">ANALYZING</span>
+              </div>
+              
+              {imagePreview && (
+                <div className="preview-container">
+                  <img src={imagePreview} alt="Selected" className="gallery-preview-image" />
+                  {selectedFile && (
+                    <div className="file-name">{selectedFile.name}</div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {error && <div className="error-message"><p>{error}</p></div>}
+          </div>
+        ) : showFloatInfo && typeof window !== 'undefined'
           ? createPortal(
             <div
               role="dialog"
